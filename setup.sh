@@ -6,6 +6,13 @@ set -e
 
 echo "🚀 Configurando proyecto Spring3 Order System..."
 
+# Corregir plugin cache directory
+if [ -f "scripts/fix_terraform_cache.sh" ]; then
+    echo "🔧 Corrigiendo configuración de Terraform..."
+    chmod +x scripts/fix_terraform_cache.sh
+    bash scripts/fix_terraform_cache.sh
+fi
+
 # Verificar que estamos en el directorio correcto
 if [ ! -f "main.tf" ]; then
     echo "❌ Error: No se encontró main.tf"
