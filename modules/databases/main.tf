@@ -25,7 +25,7 @@ resource "aws_db_instance" "main" {
   final_snapshot_identifier = var.enable_deletion_protection ? "${var.project_name}-${var.environment}-main-db-final-snapshot" : null
   deletion_protection       = var.enable_deletion_protection
 
-  enabled_cloudwatch_logs_exports = ["error", "general", "slow_query"]
+  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-main-db"
@@ -62,7 +62,7 @@ resource "aws_db_instance" "persistence" {
   final_snapshot_identifier = var.enable_deletion_protection ? "${var.project_name}-${var.environment}-persistence-db-final-snapshot" : null
   deletion_protection       = var.enable_deletion_protection
 
-  enabled_cloudwatch_logs_exports = ["error", "general", "slow_query"]
+  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-persistence-db"
@@ -99,7 +99,7 @@ resource "aws_db_instance" "auth0" {
   final_snapshot_identifier = var.enable_deletion_protection ? "${var.project_name}-${var.environment}-auth0-db-final-snapshot" : null
   deletion_protection       = var.enable_deletion_protection
 
-  enabled_cloudwatch_logs_exports = ["error", "general", "slow_query"]
+  enabled_cloudwatch_logs_exports = ["error", "general", "slowquery"]
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-auth0-db"
