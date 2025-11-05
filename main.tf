@@ -92,29 +92,31 @@ module "lambda_functions" {
 }
 
 # Módulo de ECS para Django Applications
-module "django_apps" {
-  source = "./modules/django"
-  
-  project_name = var.project_name
-  environment  = var.environment
-  
-  vpc_id             = module.networking.vpc_id
-  subnet_ids         = module.networking.private_subnet_ids
-  security_group_ids = [module.networking.django_security_group_id]
-  
-  db_endpoint         = module.databases.main_db_endpoint
-  db_name            = module.databases.main_db_name
-  db_username        = var.db_username
-  db_password        = var.db_password
-  
-  persistence_db_endpoint = module.databases.persistence_db_endpoint
-  persistence_db_name     = module.databases.persistence_db_name
-  
-  validation_function_arn = module.lambda_functions.validator_function_arn
-  anomaly_function_arn    = module.lambda_functions.anomaly_function_arn
-  
-  cloudwatch_log_group = module.monitoring.consistency_log_group_name
-}
+# COMENTADO: Requiere permisos IAM que no están disponibles en cuenta voclabs
+# Descomenta estas líneas si tienes permisos iam:CreateRole
+# module "django_apps" {
+#   source = "./modules/django"
+#   
+#   project_name = var.project_name
+#   environment  = var.environment
+#   
+#   vpc_id             = module.networking.vpc_id
+#   subnet_ids         = module.networking.private_subnet_ids
+#   security_group_ids = [module.networking.django_security_group_id]
+#   
+#   db_endpoint         = module.databases.main_db_endpoint
+#   db_name            = module.databases.main_db_name
+#   db_username        = var.db_username
+#   db_password        = var.db_password
+#   
+#   persistence_db_endpoint = module.databases.persistence_db_endpoint
+#   persistence_db_name     = module.databases.persistence_db_name
+#   
+#   validation_function_arn = module.lambda_functions.validator_function_arn
+#   anomaly_function_arn    = module.lambda_functions.anomaly_function_arn
+#   
+#   cloudwatch_log_group = module.monitoring.consistency_log_group_name
+# }
 
 # Módulo de CloudWatch y Monitoreo
 module "monitoring" {
