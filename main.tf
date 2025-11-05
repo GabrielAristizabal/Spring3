@@ -70,6 +70,9 @@ module "lambda_functions" {
   db_username        = var.db_username
   db_password        = var.db_password
   
+  persistence_db_endpoint = module.databases.persistence_db_endpoint
+  persistence_db_name     = module.databases.persistence_db_name
+  
   # Topics SNS
   validation_topic_arn    = module.messaging.validation_topic_arn
   anomaly_topic_arn       = module.messaging.anomaly_topic_arn
@@ -82,6 +85,10 @@ module "lambda_functions" {
   validation_queue_arn    = module.messaging.validation_queue_arn
   anomaly_queue_url       = module.messaging.anomaly_queue_url
   anomaly_queue_arn       = module.messaging.anomaly_queue_arn
+  
+  # Dead Letter Queues
+  validation_dlq_arn     = module.messaging.validation_dlq_arn
+  anomaly_dlq_arn         = module.messaging.anomaly_dlq_arn
 }
 
 # Módulo de ECS para Django Applications
