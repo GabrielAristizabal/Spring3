@@ -1,3 +1,7 @@
 from django.urls import path
 from .views import home
-urlpatterns = [ path("", home, name="orders_home") ]
+
+app_name = "orders"
+urlpatterns = [
+    path("", home, name="home"),  # "/" muestra el Home
+]

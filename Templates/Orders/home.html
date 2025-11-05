@@ -1,20 +1,39 @@
-{% load static %}
-<!doctype html><html><head><meta charset="utf-8"><title>Home – Pedido</title></head>
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Home – Pedido</title></head>
 <body>
   <h1>Crear pedido</h1>
+
   {% if message %}
     <p style="color: {{ ok|yesno:'green,red' }};">{{ message }}</p>
   {% endif %}
+
+  {% if order %}
+    <pre style="background:#f7f7f7;padding:10px;border:1px solid #ddd;">
+cliente:   {{ order.cliente }}
+documento: {{ order.documento }}
+fecha:     {{ order.fecha }}
+items:     {{ order.items|safe }}
+precios:   {{ order.precios|safe }}
+total:     {{ order.total }}
+status:    {{ order.status }}
+    </pre>
+  {% endif %}
+
   <form method="post">{% csrf_token %}
-    <fieldset><legend>Item 1</legend>
-      SKU: <input name="item1_sku"> Cantidad: <input name="item1_qty" type="number" min="1">
+    <fieldset><legend>Datos del cliente</legend>
+      <label>Cliente</label> <input name="cliente" required>
+      <label>Documento</label> <input name="documento" required>
+      <label>Fecha</label> <input name="fecha" type="date" required>
     </fieldset>
-    <fieldset><legend>Item 2</legend>
-      SKU: <input name="item2_sku"> Cantidad: <input name="item2_qty" type="number" min="1">
+
+    <fieldset><legend>Items</legend>
+      <div>Nombre: <input name="item1_nombre"> Cantidad: <input name="item1_qty" type="number" min="1"></div>
+      <div>Nombre: <input name="item2_nombre"> Cantidad: <input name="item2_qty" type="number" min="1"></div>
+      <div>Nombre: <input name="item3_nombre"> Cantidad: <input name="item3_qty" type="number" min="1"></div>
     </fieldset>
-    <fieldset><legend>Item 3</legend>
-      SKU: <input name="item3_sku"> Cantidad: <input name="item3_qty" type="number" min="1">
-    </fieldset>
+
     <button type="submit">Crear pedido</button>
   </form>
-</body></html>
+</body>
+</html>

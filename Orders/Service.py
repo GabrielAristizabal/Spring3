@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from pymongo import MongoClient, ReturnDocument
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
@@ -9,38 +10,80 @@ client = MongoClient(settings.MONGODB_URI)
 db = client[settings.MONGODB_DB]
 
 class OutOfStock(Exception):
-    def __init__(self, sku, requested, available):
-        super().__init__(f"Sin disponibilidad para {sku}: requerido {requested}, disponible {available}")
+    def __init__(self, item, requested, available):
+        super().__init__(f"Sin disponibilidad para {item}: requerido {requested}, disponible {available}")
 
-def create_order_with_strict_stock(items):
+class ItemNotFound(Exception):
+    def __init__(self, item):
+        super().__init__(f"Item no encontrado en bodega: {item}")
+
+def _money(x) -> float:
+    """Redondeo a 2 decimales para dinero."""
+    return float(Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+def create_order_with_strict_stock(items_list, cliente, documento, fecha_str):
     """
-    Compara pedido vs bodega y descuenta stock solo si TODO alcanza.
-    Si un ítem no alcanza, aborta la transacción y devuelve error.
+    items_list = [{"nombre": "...", "qty": 2}, ...]
+    Coteja contra bodega y descuenta stock SOLO si todos alcanzan.
+    Inserta el documento del pedido con:
+      cliente, documento, fecha (YYYY-MM-DD), items {nombre: qty},
+      precios {nombre: precio_unitario}, total.
     """
     with client.start_session() as s:
 
         def txn(sess):
-            for it in items:
-                sku, qty = it["sku"], int(it["qty"])
+            precios = {}
+            total = Decimal("0.00")
+
+            for it in items_list:
+                nombre, qty = it["nombre"], int(it["qty"])
+
+                # 1) Verifica existencia del item y obtiene su precio
+                current = db.inventory.find_one({"item": nombre}, session=sess)
+                if not current:
+                    raise ItemNotFound(nombre)
+
+                # 2) Descontar stock si alcanza (operación atómica)
                 updated = db.inventory.find_one_and_update(
-                    {"sku": sku, "stock": {"$gte": qty}},   # comparación con bodega
-                    {"$inc": {"stock": -qty}},              # descuento solo si alcanza
+                    {"item": nombre, "stock": {"$gte": qty}},
+                    {"$inc": {"stock": -qty}},
                     session=sess,
                     return_document=ReturnDocument.AFTER
                 )
                 if not updated:
-                    current = db.inventory.find_one({"sku": sku}, session=sess) or {"stock": 0}
-                    raise OutOfStock(sku, qty, current.get("stock", 0))
+                    available = current.get("stock", 0)
+                    raise OutOfStock(nombre, qty, available)
 
-            order = {"items": items, "status": "CREATED", "createdAt": datetime.utcnow()}
-            db.orders.insert_one(order, session=sess)
-            return order
+                # 3) Acumular precio y total
+                unit_price = Decimal(str(current.get("price", 0.0)))
+                precios[nombre] = _money(unit_price)
+                total += unit_price * qty
 
+            # Construir estructura EXACTA solicitada
+            order_doc = {
+                "cliente":   cliente,
+                "documento": documento,
+                "fecha":     fecha_str,  # YYYY-MM-DD
+                "items":     {it["nombre"]: it["qty"] for it in items_list},
+                "precios":   precios,
+                "total":     _money(total),
+                # Campos opcionales útiles:
+                "createdAt": datetime.utcnow(),
+                "status":    "CREATED"
+            }
+
+            db.orders.insert_one(order_doc, session=sess)
+            # Retorna lo que nos interesa mostrar (sin _id si no quieres)
+            return {k: order_doc[k] for k in ["cliente","documento","fecha","items","precios","total","status"]}
+
+        wc = WriteConcern("majority")
+        rc = ReadConcern("local")
         try:
-            wc = WriteConcern("majority")
-            rc = ReadConcern("local")
             return s.with_transaction(
-                txn, read_concern=rc, write_concern=wc, read_preference=ReadPreference.PRIMARY
+                txn,
+                read_concern=rc,
+                write_concern=wc,
+                read_preference=ReadPreference.PRIMARY
             ), None
-        except OutOfStock as e:
+        except (OutOfStock, ItemNotFound) as e:
             return None, str(e)
