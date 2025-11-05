@@ -1,0 +1,20 @@
+# Copia este archivo a terraform.tfvars y completa los valores
+
+aws_region = "us-east-1"
+project_name = "spring3-order-system"
+environment = "dev"
+
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+db_instance_class = "db.t3.micro"
+db_allocated_storage = 20
+db_username = "admin"
+db_password = "CHANGE_THIS_PASSWORD" # Cambiar por una contraseña segura
+
+django_image = "django:latest"
+django_cpu = 256
+django_memory = 512
+
+enable_deletion_protection = false
+
