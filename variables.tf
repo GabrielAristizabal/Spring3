@@ -77,3 +77,9 @@ variable "enable_deletion_protection" {
   default     = false
 }
 
+variable "lambda_role_arn" {
+  description = "ARN de un rol IAM existente para Lambda (opcional, necesario si no tienes permisos iam:CreateRole)"
+  type        = string
+  default     = null
+}
+

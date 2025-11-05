@@ -1,6 +1,13 @@
-# IAM Role para Lambda functions
+# Data source para obtener rol IAM existente si se proporciona
+data "aws_iam_role" "existing_lambda" {
+  count = var.lambda_role_arn != null ? 1 : 0
+  name  = var.lambda_role_arn != null ? reverse(split("/", var.lambda_role_arn))[0] : null
+}
+
+# IAM Role para Lambda functions (solo se crea si no se proporciona uno existente)
 resource "aws_iam_role" "lambda" {
-  name = "${var.project_name}-${var.environment}-lambda-role"
+  count = var.lambda_role_arn == null ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -22,22 +29,31 @@ resource "aws_iam_role" "lambda" {
   }
 }
 
-# Policy para acceso a VPC
+# Variable local para el ARN del rol a usar
+locals {
+  lambda_role_arn = var.lambda_role_arn != null ? var.lambda_role_arn : aws_iam_role.lambda[0].arn
+  lambda_role_name = var.lambda_role_arn != null ? split("/", var.lambda_role_arn)[length(split("/", var.lambda_role_arn)) - 1] : aws_iam_role.lambda[0].name
+}
+
+# Policy para acceso a VPC (solo si creamos el rol)
 resource "aws_iam_role_policy_attachment" "lambda_vpc" {
-  role       = aws_iam_role.lambda.name
+  count      = var.lambda_role_arn == null ? 1 : 0
+  role       = aws_iam_role.lambda[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# Policy para CloudWatch Logs
+# Policy para CloudWatch Logs (solo si creamos el rol)
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role       = aws_iam_role.lambda.name
+  count      = var.lambda_role_arn == null ? 1 : 0
+  role       = aws_iam_role.lambda[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# Policy personalizada para acceso a RDS, SNS, SQS
+# Policy personalizada para acceso a RDS, SNS, SQS (solo si creamos el rol)
 resource "aws_iam_role_policy" "lambda_custom" {
-  name = "${var.project_name}-${var.environment}-lambda-custom-policy"
-  role = aws_iam_role.lambda.id
+  count = var.lambda_role_arn == null ? 1 : 0
+  name  = "${var.project_name}-${var.environment}-lambda-custom-policy"
+  role  = aws_iam_role.lambda[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -103,7 +119,7 @@ resource "aws_lambda_layer_version" "mysql" {
 resource "aws_lambda_function" "create_order" {
   filename         = "${path.module}/functions/create_order.zip"
   function_name    = "${var.project_name}-${var.environment}-create-order"
-  role            = aws_iam_role.lambda.arn
+  role            = local.lambda_role_arn
   handler         = "create_order.lambda_handler"
   runtime         = "python3.11"
   timeout         = 30
@@ -141,7 +157,7 @@ resource "aws_lambda_function" "create_order" {
 resource "aws_lambda_function" "validator" {
   filename         = "${path.module}/functions/validator.zip"
   function_name    = "${var.project_name}-${var.environment}-validator"
-  role            = aws_iam_role.lambda.arn
+  role            = local.lambda_role_arn
   handler         = "validator.lambda_handler"
   runtime         = "python3.11"
   timeout         = 60
@@ -202,7 +218,7 @@ resource "aws_lambda_event_source_mapping" "validator_queue" {
 resource "aws_lambda_function" "anomaly" {
   filename         = "${path.module}/functions/anomaly.zip"
   function_name    = "${var.project_name}-${var.environment}-anomaly"
-  role            = aws_iam_role.lambda.arn
+  role            = local.lambda_role_arn
   handler         = "anomaly.lambda_handler"
   runtime         = "python3.11"
   timeout         = 30
@@ -254,7 +270,7 @@ resource "aws_lambda_event_source_mapping" "anomaly_queue" {
 resource "aws_lambda_function" "sync" {
   filename         = "${path.module}/functions/sync.zip"
   function_name    = "${var.project_name}-${var.environment}-sync"
-  role            = aws_iam_role.lambda.arn
+  role            = local.lambda_role_arn
   handler         = "sync.lambda_handler"
   runtime         = "python3.11"
   timeout         = 30
@@ -290,7 +306,7 @@ resource "aws_lambda_function" "sync" {
 resource "aws_lambda_function" "audit" {
   filename         = "${path.module}/functions/audit.zip"
   function_name    = "${var.project_name}-${var.environment}-audit"
-  role            = aws_iam_role.lambda.arn
+  role            = local.lambda_role_arn
   handler         = "audit.lambda_handler"
   runtime         = "python3.11"
   timeout         = 30
@@ -322,7 +338,7 @@ resource "aws_lambda_function" "audit" {
 resource "aws_lambda_function" "check_consistency" {
   filename         = "${path.module}/functions/check_consistency.zip"
   function_name    = "${var.project_name}-${var.environment}-check-consistency"
-  role            = aws_iam_role.lambda.arn
+  role            = local.lambda_role_arn
   handler         = "check_consistency.lambda_handler"
   runtime         = "python3.11"
   timeout         = 60

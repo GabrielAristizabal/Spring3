@@ -110,3 +110,9 @@ variable "anomaly_dlq_arn" {
   type        = string
 }
 
+variable "lambda_role_arn" {
+  description = "ARN del rol IAM existente para Lambda (opcional, si no se proporciona se intentará crear uno)"
+  type        = string
+  default     = null
+}
+

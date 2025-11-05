@@ -89,6 +89,9 @@ module "lambda_functions" {
   # Dead Letter Queues
   validation_dlq_arn     = module.messaging.validation_dlq_arn
   anomaly_dlq_arn         = module.messaging.anomaly_dlq_arn
+  
+  # Rol IAM existente (opcional, para cuentas sin permisos IAM)
+  lambda_role_arn = var.lambda_role_arn
 }
 
 # Módulo de ECS para Django Applications
