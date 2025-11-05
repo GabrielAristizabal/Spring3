@@ -1,0 +1,20 @@
+{% load static %}
+<!doctype html><html><head><meta charset="utf-8"><title>Home – Pedido</title></head>
+<body>
+  <h1>Crear pedido</h1>
+  {% if message %}
+    <p style="color: {{ ok|yesno:'green,red' }};">{{ message }}</p>
+  {% endif %}
+  <form method="post">{% csrf_token %}
+    <fieldset><legend>Item 1</legend>
+      SKU: <input name="item1_sku"> Cantidad: <input name="item1_qty" type="number" min="1">
+    </fieldset>
+    <fieldset><legend>Item 2</legend>
+      SKU: <input name="item2_sku"> Cantidad: <input name="item2_qty" type="number" min="1">
+    </fieldset>
+    <fieldset><legend>Item 3</legend>
+      SKU: <input name="item3_sku"> Cantidad: <input name="item3_qty" type="number" min="1">
+    </fieldset>
+    <button type="submit">Crear pedido</button>
+  </form>
+</body></html>
