@@ -200,7 +200,7 @@ resource "aws_ecs_service" "django" {
 
 # Application Load Balancer
 resource "aws_lb" "django" {
-  name               = "${var.project_name}-${var.environment}-django-alb"
+  name               = "s3-${var.environment}-django-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = var.security_group_ids
@@ -217,7 +217,7 @@ resource "aws_lb" "django" {
 
 # Target Group
 resource "aws_lb_target_group" "django" {
-  name        = "${var.project_name}-${var.environment}-django-tg"
+  name        = "s3-${var.environment}-django-tg"
   port        = 8000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
