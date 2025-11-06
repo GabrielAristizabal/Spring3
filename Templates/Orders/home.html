@@ -22,15 +22,22 @@ status:    {{ order.status }}
 
   <form method="post">{% csrf_token %}
     <fieldset><legend>Datos del cliente</legend>
-      <label>Cliente</label> <input name="cliente" required>
-      <label>Documento</label> <input name="documento" required>
-      <label>Fecha</label> <input name="fecha" type="date" required>
+      {{ form.cliente.label_tag }} {{ form.cliente }}
+      {% if form.cliente.errors %}<span style="color:red;">{{ form.cliente.errors }}</span>{% endif %}
+      <br><br>
+      {{ form.documento.label_tag }} {{ form.documento }}
+      {% if form.documento.errors %}<span style="color:red;">{{ form.documento.errors }}</span>{% endif %}
+      <br><br>
+      {{ form.fecha.label_tag }} {{ form.fecha }}
+      {% if form.fecha.errors %}<span style="color:red;">{{ form.fecha.errors }}</span>{% endif %}
     </fieldset>
 
     <fieldset><legend>Items</legend>
-      <div>Nombre: <input name="item1_nombre"> Cantidad: <input name="item1_qty" type="number" min="1"></div>
-      <div>Nombre: <input name="item2_nombre"> Cantidad: <input name="item2_qty" type="number" min="1"></div>
-      <div>Nombre: <input name="item3_nombre"> Cantidad: <input name="item3_qty" type="number" min="1"></div>
+      <div>{{ form.item1_nombre.label_tag }} {{ form.item1_nombre }} {{ form.item1_qty.label_tag }} {{ form.item1_qty }}</div>
+      <br>
+      <div>{{ form.item2_nombre.label_tag }} {{ form.item2_nombre }} {{ form.item2_qty.label_tag }} {{ form.item2_qty }}</div>
+      <br>
+      <div>{{ form.item3_nombre.label_tag }} {{ form.item3_nombre }} {{ form.item3_qty.label_tag }} {{ form.item3_qty }}</div>
     </fieldset>
 
     <button type="submit">Crear pedido</button>
