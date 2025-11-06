@@ -47,6 +47,52 @@ def home(request):
     return HttpResponse("Home OK")
 
 @csrf_exempt
+def health(request):
+    """Endpoint de health check para monitoreo"""
+    # Manejar preflight OPTIONS request para CORS
+    if request.method == "OPTIONS":
+        response = HttpResponse(status=200)
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+    
+    # Siempre retornar 200 OK si el servicio está vivo
+    # Verificaciones adicionales se incluyen en el response
+    health_status = {
+        "status": "healthy",
+        "service": "alive"
+    }
+    
+    # Verificación de MongoDB
+    mongo_status = {
+        "connected": False,
+        "error": None
+    }
+    
+    try:
+        client, db = get_mongo_client()
+        # Verificar conexión con una operación simple
+        client.server_info()
+        mongo_status["connected"] = True
+        health_status["mongodb"] = mongo_status
+    except Exception as e:
+        mongo_status["error"] = str(e)
+        health_status["mongodb"] = mongo_status
+        # Aún retornamos 200, pero indicamos que MongoDB no está disponible
+        health_status["status"] = "degraded"
+    
+    # Crear respuesta con headers CORS
+    response = JsonResponse(health_status, status=200)
+    
+    # Agregar headers CORS
+    response["Access-Control-Allow-Origin"] = "*"
+    response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type"
+    
+    return response
+
+@csrf_exempt
 def test_mongo(request):
     """Endpoint de prueba para verificar conexión a MongoDB"""
     try:
@@ -188,6 +234,7 @@ def create_order(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
+    path("health", health, name="health"),  # Endpoint de health check
     path("order/create/", create_order, name="order_create"),
     path("test/mongo/", test_mongo, name="test_mongo"),  # Endpoint de prueba
 ]
