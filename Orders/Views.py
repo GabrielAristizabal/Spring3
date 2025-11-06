@@ -40,28 +40,45 @@ def create_order(request):
         precios = {}
 
         for nombre, qty in items.items():
+            # Convertir qty a entero (puede venir como string desde JSON)
+            try:
+                qty = int(qty)
+                if qty <= 0:
+                    raise Exception(f"La cantidad para {nombre} debe ser mayor a 0")
+            except (ValueError, TypeError):
+                raise Exception(f"La cantidad para {nombre} debe ser un número válido")
+            
             # Buscar producto en inventario
             prod = inventory.find_one({"item": nombre}, session=session)
             if not prod:
                 raise Exception(f"Item no encontrado: {nombre}")
 
+            # Obtener stock actual (asegurarse de que sea entero)
             stock_actual = int(prod.get("stock", 0))
+            
+            # Validación de stock ANTES de intentar actualizar
             if stock_actual < qty:
                 raise Exception(f"Stock insuficiente para {nombre}. Disponible: {stock_actual}, solicitado: {qty}")
 
             # Registrar precio y calcular total
-            precios[nombre] = prod["price"]
-            total += prod["price"] * qty
+            precio_unitario = float(prod.get("price", 0))
+            precios[nombre] = precio_unitario
+            total += precio_unitario * qty
 
-            # Actualizar stock solo si hay disponibilidad suficiente
+            # Actualizar stock de forma atómica (solo si hay disponibilidad suficiente)
+            # Esta es una segunda validación dentro de la actualización
             resultado = inventory.update_one(
                 {"item": nombre, "stock": {"$gte": qty}},
                 {"$inc": {"stock": -qty}},
                 session=session
             )
 
+            # Si no se actualizó, significa que el stock no era suficiente
             if resultado.modified_count == 0:
-                raise Exception(f"No se pudo actualizar el stock de {nombre}. Revisa la disponibilidad.")
+                # Verificar nuevamente el stock por si cambió entre la validación y la actualización
+                stock_actualizado = inventory.find_one({"item": nombre}, session=session)
+                stock_disponible = int(stock_actualizado.get("stock", 0)) if stock_actualizado else 0
+                raise Exception(f"Stock insuficiente para {nombre}. Disponible: {stock_disponible}, solicitado: {qty}")
 
         # Insertar el pedido solo si todo salió bien
         orders.insert_one(
