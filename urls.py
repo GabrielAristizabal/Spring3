@@ -1,8 +1,7 @@
 from django.contrib import admin
-from django.urls import path
-from .views import home  # ajusta si tu vista se llama distinto
+from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", home, name="home"),
+    path("", include("Orders.urls")),   # ← envía todo a la app Orders
 ]
