@@ -1,19 +1,23 @@
 from django.contrib import admin
 from django.urls import path
-
-# --- Vista inline (no importa si orders es módulo o no) ---
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 def home(request):
-    # Si ya tienes Templates/orders/home.html, úsalo:
-    try:
-        return render(request, "orders/home.html")
-    except Exception:
-        return HttpResponse("Home OK")  # fallback simple
+    return HttpResponse("Home OK")
+
+@csrf_exempt
+def create_order(request):
+    if request.method == "GET":
+        return HttpResponse("Endpoint /order/create/ listo (usa POST)")
+    if request.method != "POST":
+        return JsonResponse({"detail": "Solo POST"}, status=405)
+    data = json.loads(request.body or "{}")
+    return JsonResponse({"ok": True, "payload": data})
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
-    path("order/create/", create_order, name="order_create"),  # <- NUEVA RUTA
+    path("order/create/", create_order, name="order_create"),
 ]
