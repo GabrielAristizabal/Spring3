@@ -15,16 +15,22 @@ def get_mongo_client():
     global _client, _db
     if _client is None:
         # Intentar obtener desde variables de entorno, sino usar el valor por defecto
-        mongo_uri = os.getenv("MONGODB_URI", "mongodb://wms_app:WmsApp!2025@13.222.177.119:27017/wms_dev")
+        # Usar la IP pública del servidor MongoDB: 34.201.94.84
+        mongo_uri = os.getenv(
+            "MONGODB_URI", 
+            "mongodb://wms_app:WmsApp!2025@34.201.94.84:27017/wms_dev?authSource=admin"
+        )
         mongo_db = os.getenv("MONGODB_DB", "wms_dev")
         
         try:
             # Conectar con timeout más largo
             _client = MongoClient(
                 mongo_uri,
-                serverSelectionTimeoutMS=5000,  # 5 segundos para selección de servidor
-                connectTimeoutMS=10000,        # 10 segundos para conectar
-                socketTimeoutMS=30000          # 30 segundos para operaciones
+                serverSelectionTimeoutMS=10000,  # 10 segundos para selección de servidor
+                connectTimeoutMS=15000,          # 15 segundos para conectar
+                socketTimeoutMS=30000,          # 30 segundos para operaciones
+                retryWrites=True,
+                retryReads=True
             )
             # Verificar conexión
             _client.server_info()
