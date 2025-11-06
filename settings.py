@@ -17,7 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "orders",                  # usa "Orders" porque tu carpeta se llama así
+    "orders",
 ]
 
 MIDDLEWARE = [
