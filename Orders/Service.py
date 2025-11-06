@@ -6,8 +6,17 @@ from pymongo.write_concern import WriteConcern
 from pymongo.read_preferences import ReadPreference
 from django.conf import settings
 
-client = MongoClient(settings.MONGODB_URI)
-db = client[settings.MONGODB_DB]
+# Inicialización lazy para evitar errores al importar el módulo
+client = None
+db = None
+
+def get_mongo_client():
+    """Obtiene el cliente de MongoDB, inicializándolo si es necesario."""
+    global client, db
+    if client is None:
+        client = MongoClient(settings.MONGODB_URI)
+        db = client[settings.MONGODB_DB]
+    return client, db
 
 class OutOfStock(Exception):
     def __init__(self, item, requested, available):
@@ -29,6 +38,7 @@ def create_order_with_strict_stock(items_list, cliente, documento, fecha_str):
       cliente, documento, fecha (YYYY-MM-DD), items {nombre: qty},
       precios {nombre: precio_unitario}, total.
     """
+    client, db = get_mongo_client()
     with client.start_session() as s:
 
         def txn(sess):

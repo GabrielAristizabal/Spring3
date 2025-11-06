@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 import os
 import sys
+from pathlib import Path
 
 def main():
+    # Asegurar que el directorio del proyecto esté en el PYTHONPATH
+    BASE_DIR = Path(__file__).resolve().parent
+    if str(BASE_DIR) not in sys.path:
+        sys.path.insert(0, str(BASE_DIR))
+    
     # Cambia "monitoring.settings" si tu proyecto se llama distinto
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
     try:
