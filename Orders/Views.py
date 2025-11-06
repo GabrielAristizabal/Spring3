@@ -20,3 +20,4 @@ def home(request):
 
     ctx["form"] = form
     return render(request, "orders/home.html", ctx)
+

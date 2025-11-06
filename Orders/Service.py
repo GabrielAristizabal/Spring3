@@ -87,3 +87,4 @@ def create_order_with_strict_stock(items_list, cliente, documento, fecha_str):
             ), None
         except (OutOfStock, ItemNotFound) as e:
             return None, str(e)
+
