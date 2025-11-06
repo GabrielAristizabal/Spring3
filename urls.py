@@ -16,9 +16,10 @@ def get_mongo_client():
     if _client is None:
         # Intentar obtener desde variables de entorno, sino usar el valor por defecto
         # Usar la IP pública del servidor MongoDB: 34.201.94.84
+        # Opciones de authSource comunes: admin, wms_dev, o el nombre de la BD
         mongo_uri = os.getenv(
             "MONGODB_URI", 
-            "mongodb://wms_app:WmsApp!2025@34.201.94.84:27017/wms_dev?authSource=admin"
+            "mongodb://wms_app:WmsApp!2025@34.201.94.84:27017/wms_dev?authSource=wms_dev"
         )
         mongo_db = os.getenv("MONGODB_DB", "wms_dev")
         
@@ -58,15 +59,28 @@ def test_mongo(request):
             "items_en_inventario": result
         })
     except Exception as e:
+        error_msg = str(e)
+        sugerencias = [
+            "Verifica que MongoDB esté corriendo",
+            "Verifica que la IP y puerto sean correctos",
+            "Verifica que el firewall permita conexiones al puerto 27017"
+        ]
+        
+        # Agregar sugerencias específicas para errores de autenticación
+        if "Authentication failed" in error_msg or "Authentication" in error_msg:
+            sugerencias.extend([
+                "Verifica que el usuario 'wms_app' exista en MongoDB",
+                "Verifica que la contraseña sea correcta",
+                "Prueba con authSource=admin en la URI: mongodb://user:pass@host:port/db?authSource=admin",
+                "O prueba con authSource=wms_dev: mongodb://user:pass@host:port/db?authSource=wms_dev",
+                "Verifica que el usuario tenga permisos sobre la base de datos wms_dev"
+            ])
+        
         return JsonResponse({
             "ok": False,
-            "error": f"Error conectando a MongoDB: {str(e)}",
-            "sugerencias": [
-                "Verifica que MongoDB esté corriendo",
-                "Verifica que la IP y puerto sean correctos",
-                "Verifica que el firewall permita conexiones al puerto 27017",
-                "Verifica que las credenciales sean correctas"
-            ]
+            "error": f"Error conectando a MongoDB: {error_msg}",
+            "sugerencias": sugerencias,
+            "uri_actual": os.getenv("MONGODB_URI", "mongodb://wms_app:***@34.201.94.84:27017/wms_dev?authSource=wms_dev")
         }, status=503)
 
 @csrf_exempt
