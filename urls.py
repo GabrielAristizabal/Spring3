@@ -3,5 +3,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("Orders.urls")),   # ← envía todo a la app Orders
+    path("", include("orders.urls")),   # ← envía todo a la app Orders
 ]
