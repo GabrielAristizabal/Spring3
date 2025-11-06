@@ -9,6 +9,7 @@ db = client["wms_dev"]
 inventory = db.inventory
 orders = db.orders
 
+
 @csrf_exempt
 def create_order(request):
     if request.method == "GET":
@@ -17,13 +18,17 @@ def create_order(request):
     if request.method != "POST":
         return JsonResponse({"error": "Solo POST"}, status=405)
 
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+
     cliente = data.get("cliente")
     documento = data.get("documento")
     fecha = data.get("fecha")
     items = data.get("items", {})
 
-    # Validación simple
+    # Validación básica
     if not cliente or not items:
         return JsonResponse({"error": "cliente e items son obligatorios"}, status=400)
 
@@ -35,22 +40,30 @@ def create_order(request):
         precios = {}
 
         for nombre, qty in items.items():
+            # Buscar producto en inventario
             prod = inventory.find_one({"item": nombre}, session=session)
             if not prod:
                 raise Exception(f"Item no encontrado: {nombre}")
 
-            if prod["stock"] < qty:
-                raise Exception(f"Stock insuficiente para {nombre}")
+            stock_actual = int(prod.get("stock", 0))
+            if stock_actual < qty:
+                raise Exception(f"Stock insuficiente para {nombre}. Disponible: {stock_actual}, solicitado: {qty}")
 
+            # Registrar precio y calcular total
             precios[nombre] = prod["price"]
             total += prod["price"] * qty
 
-            inventory.update_one(
-                {"item": nombre},
+            # Actualizar stock solo si hay disponibilidad suficiente
+            resultado = inventory.update_one(
+                {"item": nombre, "stock": {"$gte": qty}},
                 {"$inc": {"stock": -qty}},
                 session=session
             )
 
+            if resultado.modified_count == 0:
+                raise Exception(f"No se pudo actualizar el stock de {nombre}. Revisa la disponibilidad.")
+
+        # Insertar el pedido solo si todo salió bien
         orders.insert_one(
             {
                 "cliente": cliente,
