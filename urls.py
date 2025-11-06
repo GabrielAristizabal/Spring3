@@ -3,16 +3,65 @@ from django.urls import path
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+import os
 from pymongo import MongoClient
 
-# Conexión al Mongo de tu EC2
-client = MongoClient("mongodb://wms_app:WmsApp!2025@13.222.177.119:27017/wms_dev")
-db = client["wms_dev"]
-inventory = db.inventory
-orders_collection = db.orders
+# Conexión lazy a MongoDB (solo se conecta cuando se necesita)
+_client = None
+_db = None
+
+def get_mongo_client():
+    """Obtiene el cliente de MongoDB, inicializándolo si es necesario."""
+    global _client, _db
+    if _client is None:
+        # Intentar obtener desde variables de entorno, sino usar el valor por defecto
+        mongo_uri = os.getenv("MONGODB_URI", "mongodb://wms_app:WmsApp!2025@13.222.177.119:27017/wms_dev")
+        mongo_db = os.getenv("MONGODB_DB", "wms_dev")
+        
+        try:
+            # Conectar con timeout más largo
+            _client = MongoClient(
+                mongo_uri,
+                serverSelectionTimeoutMS=5000,  # 5 segundos para selección de servidor
+                connectTimeoutMS=10000,        # 10 segundos para conectar
+                socketTimeoutMS=30000          # 30 segundos para operaciones
+            )
+            # Verificar conexión
+            _client.server_info()
+            _db = _client[mongo_db]
+        except Exception as e:
+            _client = None
+            _db = None
+            raise Exception(f"Error conectando a MongoDB: {str(e)}")
+    
+    return _client, _db
 
 def home(request):
     return HttpResponse("Home OK")
+
+@csrf_exempt
+def test_mongo(request):
+    """Endpoint de prueba para verificar conexión a MongoDB"""
+    try:
+        client, db = get_mongo_client()
+        # Intentar una operación simple
+        result = db.inventory.count_documents({})
+        return JsonResponse({
+            "ok": True,
+            "message": "Conexión a MongoDB exitosa",
+            "items_en_inventario": result
+        })
+    except Exception as e:
+        return JsonResponse({
+            "ok": False,
+            "error": f"Error conectando a MongoDB: {str(e)}",
+            "sugerencias": [
+                "Verifica que MongoDB esté corriendo",
+                "Verifica que la IP y puerto sean correctos",
+                "Verifica que el firewall permita conexiones al puerto 27017",
+                "Verifica que las credenciales sean correctas"
+            ]
+        }, status=503)
 
 @csrf_exempt
 def create_order(request):
@@ -35,6 +84,14 @@ def create_order(request):
     # Validación básica
     if not cliente or not items:
         return JsonResponse({"error": "cliente e items son obligatorios"}, status=400)
+
+    # Obtener conexión a MongoDB
+    try:
+        client, db = get_mongo_client()
+        inventory = db.inventory
+        orders_collection = db.orders
+    except Exception as e:
+        return JsonResponse({"error": f"Error de conexión a la base de datos: {str(e)}"}, status=503)
 
     session = client.start_session()
     session.start_transaction()
@@ -112,4 +169,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", home, name="home"),
     path("order/create/", create_order, name="order_create"),
+    path("test/mongo/", test_mongo, name="test_mongo"),  # Endpoint de prueba
 ]
