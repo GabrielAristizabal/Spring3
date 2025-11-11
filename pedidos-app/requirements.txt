@@ -1,0 +1,7 @@
+Django>=4.2,<5.0
+social-auth-app-django>=5.4
+requests>=2.31
+PyJWT>=2.8
+cryptography>=43.0
+pymongo>=4.8
+python-dotenv>=1.0
