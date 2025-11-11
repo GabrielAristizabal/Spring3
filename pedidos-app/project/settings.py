@@ -1,38 +1,66 @@
-import os
-from pathlib import Path
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret")
+# --- Básicos ---
+SECRET_KEY = "dev-secret"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
+ROOT_URLCONF = "project.urls"          # o "urls" si están en raíz
+WSGI_APPLICATION = "project.wsgi.application"
+
 INSTALLED_APPS = [
-    "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
-    "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
-    "social_django",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    # 3rd party
+    "social_django",        # si usas Auth0
+    # Apps propias
     "orders",
 ]
 
-LOGIN_URL = "/login/auth0"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "http://<IP_PUBLICA_APP>:8080"
+# ⚠️ Orden requerido por admin:
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",             # ← antes de Auth
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",          # ← después de Session
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Opcional si usas social-auth:
+    # "social_django.middleware.SocialAuthExceptionMiddleware",
+]
 
-SOCIAL_AUTH_TRAILING_SLASH = False
-SOCIAL_AUTH_AUTH0_DOMAIN  = os.getenv("AUTH0_DOMAIN")          # p.ej. dev-xxx.auth0.com
-SOCIAL_AUTH_AUTH0_KEY     = os.getenv("AUTH0_CLIENT_ID")
-SOCIAL_AUTH_AUTH0_SECRET  = os.getenv("AUTH0_CLIENT_SECRET")
-SOCIAL_AUTH_AUTH0_SCOPE   = ["openid","profile","email","role"]
+# Requerido por admin: backend DjangoTemplates y messages/auth context processors
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-AUTHENTICATION_BACKENDS = (
-    "orders.auth0_backend.Auth0",   # tu backend (igual al del lab)
-    "django.contrib.auth.backends.ModelBackend",
-)
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],   # opcional
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                # opcionales para social-auth:
+                # "social_django.context_processors.backends",
+                # "social_django.context_processors.login_redirect",
+            ],
+        },
+    },
+]
 
-# Mongo / DB
-MONGODB_URI = os.getenv("MONGODB_URI")  # ej: mongodb://...
-MONGODB_DB  = os.getenv("MONGODB_DB","wms_dev")
+# DB mínima para admin/sesiones (usa sqlite local)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
 
-# Firma de la bitácora (elige una)
-AUDIT_SIGNING_MODE = os.getenv("AUDIT_SIGNING_MODE","ED25519")  # ED25519 | HMAC
-AUDIT_SIGNING_SECRET = os.getenv("AUDIT_SIGNING_SECRET")        # si HMAC
-AUDIT_ED25519_PRIVATE_KEY_PEM = os.getenv("AUDIT_ED25519_PRIV") # si Ed25519 (PEM)
+STATIC_URL = "static/"
