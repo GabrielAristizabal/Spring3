@@ -34,8 +34,21 @@ MIDDLEWARE = [
 
 # Requerido por admin: backend DjangoTemplates y messages/auth context processors
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# Cargar variables desde .env (si existe)
+load_dotenv(BASE_DIR / ".env")
+
+# *** Mongo ***
+MONGODB_URI = os.getenv(
+    "MONGODB_URI",
+    # Valor por defecto (cámbialo o deja vacío para obligar a definir en .env)
+    ""
+)
+MONGODB_DB = os.getenv("MONGODB_DB", "wms_dev")
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
