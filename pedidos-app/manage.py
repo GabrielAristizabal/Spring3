@@ -17,7 +17,7 @@ def main():
         pass
 
     # Usa DJANGO_SETTINGS_MODULE de entorno si existe; si no, 'settings'
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.getenv("DJANGO_SETTINGS_MODULE", "settings"))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project.settings")
 
     try:
         from django.core.management import execute_from_command_line
