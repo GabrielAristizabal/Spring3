@@ -1,28 +1,18 @@
-# urls.py (en la raíz, junto a manage.py)
 from django.contrib import admin
-from django.urls import path, include
-from django.shortcuts import redirect
-from django.contrib.auth.views import LogoutView
-
-# Vistas de tu app
-from orders.views import home, create_order, approve_order  # agrega update_order si la tienes
-
-# Atajo para iniciar login con Auth0 (social-auth)
-def auth0_login(request):
-    return redirect('social:begin', backend='auth0')
+from django.urls import path
+from orders.views import (
+    home, order_list, order_detail, order_create, order_update, order_delete,
+    register_user, verify
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
-    # Pedidos
     path("", home, name="home"),
-    path("order/create/", create_order, name="order_create"),
-    path("order/<str:order_id>/approve/", approve_order, name="order_approve"),
-    # path("order/<str:order_id>/update/", update_order, name="order_update"),  # descomenta si existe
-
-
-    # Auth0 (social-auth)
-    path("auth/", include("social_django.urls", namespace="social")),
-    path("login/auth0", auth0_login, name="login_auth0"),
-    path("logout/", LogoutView.as_view(next_page="/"), name="logout"),
+    path("orders/", order_list, name="order_list"),
+    path("orders/create/", order_create, name="order_create"),
+    path("orders/<str:order_id>/", order_detail, name="order_detail"),
+    path("orders/<str:order_id>/edit/", order_update, name="order_update"),
+    path("orders/<str:order_id>/delete/", order_delete, name="order_delete"),
+    path("users/register/", register_user, name="register_user"),
+    path("verify/", verify, name="verify"),
 ]

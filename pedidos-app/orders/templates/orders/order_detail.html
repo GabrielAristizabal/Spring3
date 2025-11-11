@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Detalle pedido{% endblock %}
+{% block content %}
+<h3>Pedido {{ order._id }}</h3>
+<div class="row">
+  <div class="col-md-7">
+    <div class="card mb-3">
+      <div class="card-header">Datos</div>
+      <div class="card-body">
+        <div><b>Cliente:</b> {{ order.cliente }}</div>
+        <div><b>Documento:</b> {{ order.documento }}</div>
+        <div><b>Fecha:</b> {{ order.fecha }}</div>
+        <div><b>Items:</b> <pre class="mb-0">{{ order.items|safe }}</pre></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    {% if order.audit %}
+    <div class="card mb-3">
+      <div class="card-header">Auditoría / No repudio</div>
+      <div class="card-body">
+        <div><b>Hash:</b> <code>{{ order.audit.hash }}</code></div>
+        <div><b>Prev hash:</b> <code>{{ order.audit.prev_hash }}</code></div>
+        <div><b>Firmante:</b> {{ order.audit.signer }} ({{ order.audit.pub_fingerprint }})</div>
+        <div class="mt-2"><b>Firma:</b>
+          <details><summary>ver</summary><code style="word-break:break-all">{{ order.audit.signature }}</code></details>
+        </div>
+        <div class="mt-2"><b>Sobre cifrado:</b>
+          <details><summary>ver</summary>
+            <div><b>alg:</b> {{ order.audit.envelope.alg }}</div>
+            <div><b>nonce:</b> <code>{{ order.audit.envelope.nonce }}</code></div>
+            <div><b>wrapped_key:</b> <code>{{ order.audit.envelope.wrapped_key }}</code></div>
+            <div><b>ciphertext:</b> <code style="word-break:break-all">{{ order.audit.envelope.ciphertext }}</code></div>
+          </details>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

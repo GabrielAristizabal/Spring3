@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Registrar usuario{% endblock %}
+{% block content %}
+<h3>Registrar usuario (genera par de claves)</h3>
+<form method="post" class="bg-white p-3 rounded shadow-sm mb-3">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary">Crear usuario</button>
+</form>
+
+{% if pub_pem %}
+<div class="alert alert-info">
+  <b>Clave pública (guárdala):</b>
+  <pre class="mb-0">{{ pub_pem }}</pre>
+</div>
+{% endif %}
+{% if priv_pem %}
+<div class="alert alert-warning">
+  <b>Clave privada (guárdala en sitio seguro):</b>
+  <pre class="mb-0">{{ priv_pem }}</pre>
+</div>
+{% endif %}
+{% endblock %}

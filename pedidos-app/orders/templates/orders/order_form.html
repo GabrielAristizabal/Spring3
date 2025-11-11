@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{% if update %}Editar{% else %}Crear{% endif %} pedido{% endblock %}
+{% block content %}
+<h3>{% if update %}Editar{% else %}Crear{% endif %} pedido</h3>
+<form method="post" class="bg-white p-3 rounded shadow-sm">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-success">{% if update %}Guardar{% else %}Crear{% endif %}</button>
+</form>
+<p class="mt-3 text-muted">Tip: en items usa JSON como <code>{"Arroz":2,"Azúcar":1}</code></p>
+{% endblock %}

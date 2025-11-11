@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+<div class="p-4 bg-white rounded shadow-sm">
+  <h3>Experimento de No Repudio</h3>
+  <p>Creación de pedidos, firma digital con clave privada del usuario, cifrado híbrido y cadena de hashes.</p>
+  <a class="btn btn-primary" href="{% url 'order_create' %}">Crear pedido</a>
+  <a class="btn btn-outline-secondary" href="{% url 'order_list' %}">Ver pedidos</a>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Verificar{% endblock %}
+{% block content %}
+<h3>Verificar operación</h3>
+<form method="post" class="bg-white p-3 rounded shadow-sm mb-3">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-warning">Verificar</button>
+</form>
+
+{% if sig_ok is not None %}
+  <ul class="list-group mb-3">
+    <li class="list-group-item"><b>Firma válida:</b> {{ sig_ok|yesno:"Sí,No" }}</li>
+    <li class="list-group-item"><b>Sobre descifrado (hash coincide):</b> {{ dec_ok|yesno:"Sí,No" }}</li>
+  </ul>
+{% endif %}
+{% endblock %}
