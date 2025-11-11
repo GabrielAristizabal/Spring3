@@ -6,7 +6,6 @@ from django.contrib.auth.views import LogoutView
 
 # Vistas de tu app
 from orders.views import home, create_order, approve_order  # agrega update_order si la tienes
-from orders.health import health_liveness, health_readiness
 
 # Atajo para iniciar login con Auth0 (social-auth)
 def auth0_login(request):
@@ -21,9 +20,6 @@ urlpatterns = [
     path("order/<str:order_id>/approve/", approve_order, name="order_approve"),
     # path("order/<str:order_id>/update/", update_order, name="order_update"),  # descomenta si existe
 
-    # Health checks
-    path("health/liveness", health_liveness, name="health_liveness"),
-    path("health/readiness", health_readiness, name="health_readiness"),
 
     # Auth0 (social-auth)
     path("auth/", include("social_django.urls", namespace="social")),
