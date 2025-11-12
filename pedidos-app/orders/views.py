@@ -60,6 +60,29 @@ def register_user(request):
 
 
 # -----------------------------
+# Cambiar firmante manualmente
+# -----------------------------
+@require_http_methods(["GET"])
+def set_signer(request):
+    """
+    Cambia el firmante activo colocando el documento en la sesión:
+    /firmante/usar/?doc=XXXXXXXX
+    """
+    doc = (request.GET.get("doc") or "").strip()
+    if not doc:
+        messages.error(request, "Debes enviar el parámetro ?doc=DOCUMENTO")
+        return redirect("create_order")
+
+    user = db.users.find_one({"document": doc})
+    if user:
+        request.session["signer_doc"] = doc
+        messages.success(request, f"Firmante activo cambiado a {doc} ({user.get('name','')}).")
+    else:
+        messages.error(request, f"No existe un usuario con documento {doc}.")
+    return redirect("create_order")
+
+
+# -----------------------------
 # Crear pedido
 # -----------------------------
 @require_http_methods(["GET", "POST"])
