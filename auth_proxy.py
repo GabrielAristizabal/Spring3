@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 # === CONFIGURACIÓN ===
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
-API_AUDIENCE = os.getenv("API_AUDIENCE")  # ID de tu API en Auth0
+AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
 ALGORITHMS = ["RS256"]
 
 # Dirección del microservicio de pedidos/verificador
@@ -54,7 +54,7 @@ def verify_token(token):
         token,
         public_key,
         algorithms=ALGORITHMS,
-        audience=API_AUDIENCE,
+        audience=AUTH0_AUDIENCE,
         issuer=f"https://{AUTH0_DOMAIN}/"
     )
     return payload
