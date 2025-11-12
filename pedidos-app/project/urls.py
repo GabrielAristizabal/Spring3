@@ -7,7 +7,7 @@ from orders.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", home, name="home"),
+    path("", RedirectView.as_view(pattern_name="create_order", permanent=False), name="home"),
     path("orders/", order_list, name="order_list"),
     path("orders/create/", order_create, name="order_create"),
     path("orders/<str:order_id>/", order_detail, name="order_detail"),
