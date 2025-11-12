@@ -1,34 +1,31 @@
 #!/bin/bash
 
+# === CONFIGURACIÓN ===
+
 # IP pública o privada del verificador de consistencia
 VERIFICADOR_IP=44.223.35.185
 
 # Puerto donde corre el verificador
 VERIFICADOR_PORT=8080
 
-# Endpoint de health check
+# Endpoint de health check (asegúrate que coincida con el verificador)
 HEALTH_ENDPOINT="/health"
 
-# Intervalo entre checks (en segundos)
+# Intervalo entre verificaciones (segundos)
 INTERVAL=5
 
-# Directorio de logs (si no existe, se crea automáticamente)
+# Directorio y archivo de logs
 LOG_DIR="/home/ubuntu/logs"
 LOG_FILE="$LOG_DIR/monitor_verificador.log"
 
 
-# PREPARAR DIRECTORIO DE LOGS
+# === PREPARACIÓN DE LOGS ===
 
-# Crear directorio si no existe
 mkdir -p "$LOG_DIR"
-
-# Crear archivo de log si no existe
-if [ ! -f "$LOG_FILE" ]; then
-    touch "$LOG_FILE"
-fi
+touch "$LOG_FILE"
 
 
-# INICIO DEL MONITOR
+# === INICIO DEL MONITOR ===
 
 echo "=== Monitor del Verificador de Consistencia ==="
 echo "Verificando cada $INTERVAL segundos..."
@@ -37,15 +34,17 @@ echo "Logs: $LOG_FILE"
 echo "==============================================="
 
 while true; do
+    # Obtener código HTTP (si falla, devolver 0)
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 http://$VERIFICADOR_IP:$VERIFICADOR_PORT$HEALTH_ENDPOINT)
 
-    # Obtener código HTTP del endpoint
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://$VERIFICADOR_IP:$VERIFICADOR_PORT$HEALTH_ENDPOINT)
+    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-    # Registrar estado
-    if [ "$STATUS" -ne 200 ]; then
-        echo "[ERROR] Verificador NO responde (HTTP $STATUS) - $(date)" >> "$LOG_FILE"
+    if [ "$STATUS" == "200" ]; then
+        echo "[OK] Verificador activo - $TIMESTAMP" >> "$LOG_FILE"
+    elif [ -z "$STATUS" ] || [ "$STATUS" == "000" ]; then
+        echo "[ERROR] Verificador NO responde (sin conexión) - $TIMESTAMP" >> "$LOG_FILE"
     else
-        echo "[OK] Verificador activo - $(date)" >> "$LOG_FILE"
+        echo "[ERROR] Verificador NO responde (HTTP $STATUS) - $TIMESTAMP" >> "$LOG_FILE"
     fi
 
     sleep $INTERVAL
