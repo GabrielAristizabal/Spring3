@@ -1,24 +1,73 @@
 {% extends "base.html" %}
-{% block title %}Pedidos{% endblock %}
 {% block content %}
-<h3>Pedidos</h3>
-<table class="table table-striped">
-  <thead><tr><th>ID</th><th>Cliente</th><th>Fecha</th><th>Acciones</th></tr></thead>
-  <tbody>
-  {% for o in orders %}
-    <tr>
-      <td><a href="{% url 'order_detail' o._id %}">{{ o._id }}</a></td>
-      <td>{{ o.cliente }}</td>
-      <td>{{ o.fecha }}</td>
-      <td>
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'order_detail' o._id %}">Ver</a>
-        <a class="btn btn-sm btn-outline-warning" href="{% url 'order_update' o._id %}">Editar</a>
-        <a class="btn btn-sm btn-outline-danger" href="{% url 'order_delete' o._id %}">Eliminar</a>
-      </td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="4" class="text-center text-muted">Sin pedidos</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<h2>Lista de Pedidos</h2>
+
+{% if orders %}
+  <div class="row">
+    {% for order in orders %}
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Pedido #{{ forloop.counter }}</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <strong>Creado por:</strong>
+              {% if order.creador %}
+                <span class="badge bg-info">{{ order.creador.name }}</span>
+                <small class="text-muted">({{ order.creador.document }})</small>
+              {% else %}
+                <span class="text-muted">N/A</span>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <strong>Cliente:</strong> {{ order.client|default:"N/A" }}
+            </div>
+            
+            <div class="mb-3">
+              <strong>Items:</strong>
+              {% if order.items %}
+                <ul class="list-group list-group-flush mt-2">
+                  {% for item, cantidad in order.items.items %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>{{ item }}</span>
+                      <span class="badge bg-primary rounded-pill">{{ cantidad }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted mb-0">Sin items</p>
+              {% endif %}
+            </div>
+            
+            {% if order.date %}
+              <div class="text-muted small">
+                <strong>Fecha del pedido:</strong> {{ order.date }}
+              </div>
+            {% endif %}
+            
+            {% if order.created_at %}
+              <div class="text-muted small">
+                <strong>Creado:</strong> {{ order.created_at|date:"Y-m-d H:i" }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  
+  <div class="mt-3">
+    <p class="text-muted">
+      <strong>Total de pedidos:</strong> {{ orders|length }}
+    </p>
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    <h5>No hay pedidos registrados</h5>
+    <p class="mb-0">Aún no se han creado pedidos en el sistema.</p>
+    <a href="{% url 'create_order' %}" class="btn btn-primary mt-2">Crear primer pedido</a>
+  </div>
+{% endif %}
 {% endblock %}

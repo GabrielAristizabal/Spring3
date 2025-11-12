@@ -26,6 +26,7 @@
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="{% url 'create_order' %}">Crear pedido</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'register_user' %}">Registrar usuario</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'order_list' %}">Ver pedidos</a></li>
       </ul>
       <ul class="navbar-nav">
         {% if request.session.auth0_authenticated %}

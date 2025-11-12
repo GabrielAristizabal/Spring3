@@ -11,6 +11,7 @@ from orders.views import (
     auth0_login,
     auth0_callback,
     auth0_logout,
+    order_list,
 )
 
 urlpatterns = [
@@ -30,5 +31,6 @@ urlpatterns = [
 
     # Pedidos
     path("orders/create/", create_order, name="create_order"),
+    path("orders/list/", order_list, name="order_list"),
     path("health/", health, name="health"),
 ]

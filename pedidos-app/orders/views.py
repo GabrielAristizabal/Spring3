@@ -119,10 +119,30 @@ def auth0_logout(request):
 # -----------------------------
 # Lista de pedidos
 # -----------------------------
+@auth0_optional
 def order_list(request):
     """Muestra todos los pedidos registrados"""
     pedidos = list(db.orders.find().sort("created_at", -1))
-    return render(request, "orders/order_list.html", {"orders": pedidos})
+    
+    # Enriquecer pedidos con información del creador
+    pedidos_enriquecidos = []
+    for pedido in pedidos:
+        pedido_dict = dict(pedido)
+        # Obtener información del usuario que creó el pedido
+        created_by_doc = pedido.get("created_by")
+        creador_info = None
+        if created_by_doc:
+            creador = get_user_by_document(created_by_doc)
+            if creador:
+                creador_info = {
+                    "name": creador.get("name", "N/A"),
+                    "document": creador.get("document", "N/A"),
+                }
+        
+        pedido_dict["creador"] = creador_info
+        pedidos_enriquecidos.append(pedido_dict)
+    
+    return render(request, "orders/order_list.html", {"orders": pedidos_enriquecidos})
 
 
 # -----------------------------
