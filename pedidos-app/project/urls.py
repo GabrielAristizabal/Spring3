@@ -5,12 +5,16 @@ from django.views.generic import RedirectView
 
 from orders.views import (
     home,
-    register_user,
-    set_signer,
-    order_create,
     order_list,
-    order_detail,   # opcional si usas detalle
+    order_detail,
+    order_create,
+    order_update,
+    order_delete,
+    register_user,
+    verify,
+    set_signer,
 )
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
