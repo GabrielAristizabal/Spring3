@@ -1,11 +1,53 @@
-{% extends "base.html" %}
-{% block title %}{% if update %}Editar{% else %}Crear{% endif %} pedido{% endblock %}
+{% extends "orders/base.html" %}
 {% block content %}
-<h3>{% if update %}Editar{% else %}Crear{% endif %} pedido</h3>
-<form method="post" class="bg-white p-3 rounded shadow-sm">
+<h2>Crear pedido</h2>
+
+{% if signer %}
+  <div class="alert alert-success">
+    Firmante activo: <strong>{{ signer.name }}</strong> ({{ signer.document }})
+  </div>
+{% else %}
+  <div class="alert alert-danger">
+    No existe el usuario firmante. Regístralo o selecciónalo (puedes escribirlo abajo en el campo "Firmante").
+  </div>
+{% endif %}
+
+<form method="post" action="{% url 'create_order' %}" class="card card-body">
   {% csrf_token %}
-  {{ form.as_p }}
-  <button class="btn btn-success">{% if update %}Guardar{% else %}Crear{% endif %}</button>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Cliente</label>
+      <input name="cliente" class="form-control" required>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Documento del cliente</label>
+      <input name="documento" class="form-control" required>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Fecha</label>
+      <input type="date" name="fecha" class="form-control" required>
+    </div>
+
+    <div class="col-md-8 mb-3">
+      <label class="form-label">Firmante (documento) <small class="text-muted">(opcional)</small></label>
+      <input name="firmante" class="form-control"
+             value="{{ request.session.signer_doc|default:'' }}"
+             placeholder="Documento del firmante (opcional)">
+      <div class="form-text">Si lo llenas, se usará este documento como firmante y se actualizará la sesión.</div>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Items (JSON)</label>
+    <textarea name="items" class="form-control" rows="6" required>{ "Cascos de seguridad": 2, "Guantes": 1 }</textarea>
+    <div class="form-text">Ejemplo: {"Cascos de seguridad":2,"Guantes":1}</div>
+  </div>
+
+  <button class="btn btn-success">Crear</button>
 </form>
-<p class="mt-3 text-muted">Tip: en items usa JSON como <code>{"Arroz":2,"Azúcar":1}</code></p>
 {% endblock %}
