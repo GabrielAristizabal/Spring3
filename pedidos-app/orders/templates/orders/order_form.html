@@ -2,6 +2,13 @@
 {% block content %}
 <h2>Crear pedido</h2>
 
+{% if auth0_user %}
+  <div class="alert alert-info">
+    <strong>Autenticado con Auth0:</strong> {{ auth0_user.email|default:"Usuario" }}
+    <a href="{% url 'auth0_logout' %}" class="btn btn-sm btn-outline-secondary float-end">Cerrar sesión</a>
+  </div>
+{% endif %}
+
 {% if signer %}
   <div class="alert alert-success">
     Firmante activo: <strong>{{ signer.name }}</strong> ({{ signer.document }})

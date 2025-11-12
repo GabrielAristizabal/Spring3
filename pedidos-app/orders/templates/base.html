@@ -27,7 +27,18 @@
         <li class="nav-item"><a class="nav-link" href="{% url 'create_order' %}">Crear pedido</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'register_user' %}">Registrar usuario</a></li>
       </ul>
-      <span class="navbar-text text-light">
+      <ul class="navbar-nav">
+        {% if request.session.auth0_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link text-light" href="{% url 'auth0_logout' %}">Cerrar sesión</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link text-light" href="{% url 'auth0_login' %}">Iniciar sesión</a>
+          </li>
+        {% endif %}
+      </ul>
+      <span class="navbar-text text-light ms-3">
         {% if request.session.signer_doc %}
           Firmante: <strong>{{ request.session.signer_doc }}</strong>
         {% else %}

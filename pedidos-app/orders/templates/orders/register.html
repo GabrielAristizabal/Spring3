@@ -2,20 +2,37 @@
 {% block content %}
 <h2>Registrar usuario</h2>
 
+{% if auth0_user %}
+<div class="alert alert-success">
+  <strong>Autenticado con Auth0:</strong> 
+  <ul class="mb-0 mt-2">
+    <li><strong>Email:</strong> {{ auth0_user.email|default:"N/A" }}</li>
+    <li><strong>Usuario ID:</strong> {{ auth0_user.sub|default:"N/A" }}</li>
+    <li><strong>Nombre:</strong> {{ auth0_user.name|default:auth0_user.nickname|default:"N/A" }}</li>
+  </ul>
+</div>
+{% endif %}
+
 <form method="post" class="mt-3 card card-body">
   {% csrf_token %}
   <div class="mb-3">
     <label class="form-label">Nombre</label>
-    <input name="name" class="form-control" required>
+    <input name="name" class="form-control" value="{{ default_name }}" 
+           placeholder="Nombre del usuario">
+    <div class="form-text">Si se deja vacío, se usará el nombre de Auth0.</div>
   </div>
   <div class="mb-3">
-    <label class="form-label">Documento</label>
-    <input name="document" class="form-control" required>
+    <label class="form-label">Documento <span class="text-danger">*</span></label>
+    <input name="document" class="form-control" required 
+           placeholder="Número de documento">
+    <div class="form-text">Documento de identidad (obligatorio).</div>
   </div>
   <button class="btn btn-primary">Registrar y activar firmante</button>
 </form>
 
 <p class="text-muted mt-3">
-  Al registrar, se generarán las llaves y quedará activo el firmante en la sesión.
+  Al registrar, se generarán las llaves RSA (pública y privada) y quedará activo el firmante en la sesión.
+  Estas llaves se usarán para firmar digitalmente los pedidos y garantizar el no repudio.
 </p>
 {% endblock %}
+

@@ -70,6 +70,14 @@ DATABASES = {
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 MONGODB_DB = os.getenv("MONGODB_DB", "wms_dev")
 
+# --- Caché (para JWKS de Auth0) ---
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
+
 # --- Estáticos ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"       # para collectstatic en prod
@@ -85,6 +93,13 @@ AUTHENTICATION_BACKENDS = [
     # "social_core.backends.auth0.Auth0OAuth2",   # descomenta si ya configuraste Auth0
 ]
 
-LOGIN_URL = "/login/"
+LOGIN_URL = "/auth/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+# --- Configuración Auth0 ---
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "")
+AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID", "")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET", "")
+AUTH_PROXY_URL = os.getenv("AUTH_PROXY_URL", "http://localhost:5000")
