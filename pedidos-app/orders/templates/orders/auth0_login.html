@@ -4,29 +4,71 @@
 
 <div class="alert alert-info">
   <strong>Autenticación requerida:</strong> Debes autenticarte con Auth0 para acceder a la aplicación.
-  <br>
-  <small>Obtén tu token de Auth0 y pégalo en el formulario a continuación.</small>
 </div>
 
 <form method="post" class="mt-3 card card-body">
   {% csrf_token %}
   <div class="mb-3">
-    <label class="form-label">Token de Auth0</label>
+    <label class="form-label">Token JWT de Auth0</label>
     <textarea name="token" class="form-control" rows="5" required 
-              placeholder="Pega aquí tu token JWT de Auth0"></textarea>
+              placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
     <div class="form-text">
-      El token debe ser un JWT válido emitido por Auth0. 
-      Puedes obtenerlo desde tu aplicación cliente de Auth0 o desde el proxy de autenticación.
+      Pega aquí tu token JWT completo emitido por Auth0.
     </div>
   </div>
   <button class="btn btn-primary">Iniciar sesión</button>
 </form>
 
+<div class="card mt-4">
+  <div class="card-header bg-light">
+    <h5 class="mb-0">¿Cómo obtener el token JWT?</h5>
+  </div>
+  <div class="card-body">
+    <h6>Opción 1: Desde la terminal (Client Credentials)</h6>
+    <p>Usa este comando curl para obtener un token:</p>
+    <pre class="bg-dark text-light p-3 rounded"><code>curl -X POST https://TU_DOMINIO.auth0.com/oauth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "TU_CLIENT_ID",
+    "client_secret": "TU_CLIENT_SECRET",
+    "audience": "TU_AUDIENCE",
+    "grant_type": "client_credentials"
+  }'</code></pre>
+    <p class="text-muted small">Reemplaza TU_DOMINIO, TU_CLIENT_ID, TU_CLIENT_SECRET y TU_AUDIENCE con tus valores de Auth0.</p>
+
+    <hr>
+
+    <h6>Opción 2: Desde Auth0 Dashboard</h6>
+    <ol>
+      <li>Ve a tu <strong>Auth0 Dashboard</strong> → <strong>Applications</strong> → Tu aplicación</li>
+      <li>En la pestaña <strong>"Test"</strong> o <strong>"Quick Start"</strong></li>
+      <li>Busca la sección de <strong>"Get Token"</strong> o <strong>"Try it out"</strong></li>
+      <li>Copia el token que aparece (empieza con <code>eyJ...</code>)</li>
+    </ol>
+
+    <hr>
+
+    <h6>Opción 3: Desde tu aplicación cliente</h6>
+    <p>Si tienes una aplicación SPA o móvil configurada con Auth0, el token se obtiene automáticamente después del login. Puedes copiarlo desde:</p>
+    <ul>
+      <li>Las herramientas de desarrollador del navegador (localStorage, sessionStorage)</li>
+      <li>El callback de Auth0 después de la autenticación</li>
+      <li>Tu aplicación cliente que maneja el flujo OAuth</li>
+    </ul>
+
+    <hr>
+
+    <h6>Opción 4: Usando el proxy de autenticación</h6>
+    <p>Si tu proxy de Auth0 está configurado, puedes obtener el token desde allí después de autenticarte.</p>
+  </div>
+</div>
+
 <div class="mt-3">
   <p class="text-muted">
-    <strong>Nota:</strong> Si tienes un token en la URL (callback), puedes usar el endpoint 
+    <strong>Nota:</strong> También puedes usar el endpoint de callback directamente: 
     <code>/auth/callback/?token=TU_TOKEN</code>
   </p>
 </div>
 {% endblock %}
+
 
