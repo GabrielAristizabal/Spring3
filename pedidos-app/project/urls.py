@@ -17,5 +17,7 @@ urlpatterns = [
 
     # Pedidos
     path("orders/create/", create_order, name="create_order"),
-    path("heath/", health, name="health"),
+    path("health/", health, name="health"),
 ]
+
+#health
