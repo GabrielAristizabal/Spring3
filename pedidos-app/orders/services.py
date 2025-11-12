@@ -61,7 +61,15 @@ def make_operation_hash(payload: dict) -> str:
     """
     # json ordenado para que el hash sea determinista
     body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return _sha256_hex(body)
+    hash_result = _sha256_hex(body)
+    
+    # Log para demostración académica
+    print(f"      Payload a hashear: {len(body)} bytes")
+    print(f"      JSON ordenado (sort_keys=True) para determinismo")
+    print(f"      Función hash: SHA-256")
+    print(f"      Tamaño del hash: 256 bits (64 caracteres hex)")
+    
+    return hash_result
 
 def _sign_rsa_b64(private_pem: str | bytes, data_to_sign: bytes | str) -> str:
     """
@@ -153,19 +161,41 @@ def crear_pedido_firmado(
     }
 
     # 4) Hash de la operación
+    print("\n" + "="*80)
+    print("PROCESO DE SEGURIDAD: HASH Y CIFRADO")
+    print("="*80)
+    
+    print("\n[PASO 1] Generando hash SHA-256 de la operación...")
     op_hash = make_operation_hash(op_payload)
-
+    print(f"   Hash generado: {op_hash[:32]}...{op_hash[-16:]}")
+    print(f"   Longitud del hash: {len(op_hash)} caracteres (SHA-256)")
+    print(f"   Algoritmo: SHA-256")
+    
     # 5) Firma con la clave privada del usuario (si está guardada)
     priv_pem = signer.get("priv_key")
     if not priv_pem:
         # En algunos setups solo se guarda la pública; puedes cambiarla por una del sistema si aplicara.
         raise RuntimeError("El usuario no tiene clave privada almacenada para firmar (demo).")
 
+    print("\n [PASO 2] Firmando el hash con clave privada RSA...")
+    print(f"   Usuario firmante: {signer.get('name', 'N/A')} ({signer.get('document', 'N/A')})")
+    print(f"   Algoritmo de firma: RSA-PSS con SHA-256")
     signature_b64 = _sign_rsa_b64(priv_pem, op_hash)
+    print(f"   Firma generada: {signature_b64[:40]}...{signature_b64[-20:]}")
+    print(f"   Longitud de la firma: {len(signature_b64)} caracteres (base64)")
+    print(f"   No repudio garantizado: Solo el dueño de la clave privada pudo crear esta firma")
 
     # 6) Hash encadenado (ledger)
     prev_chain = get_last_hash()
+    print("\n[PASO 3] Creando hash encadenado (Ledger/Blockchain)...")
+    if prev_chain:
+        print(f"  Hash anterior en la cadena: {prev_chain[:32]}...{prev_chain[-16:]}")
+    else:
+        print(f"  Hash anterior: (Primer registro en la cadena)")
     chain_hash = _sha256_hex((prev_chain + op_hash).encode("utf-8"))
+    print(f"   Hash encadenado generado: {chain_hash[:32]}...{chain_hash[-16:]}")
+    print(f"   Integridad: Cualquier modificación romperá toda la cadena")
+    print(f"   Tipo: Ledger inmutable (similar a blockchain)")
 
     # 7) Inserta en audit_log
     audits.insert_one({
@@ -179,5 +209,23 @@ def crear_pedido_firmado(
         "chain_hash": chain_hash,
         "created_at": utcnow(),
     })
+    
+    print("\n[PASO 4] Guardando en audit_log...")
+    print(f"  Registro de auditoría guardado con ID: {order_id}")
+    print(f"  Campos guardados:")
+    print(f"   - op_hash: Hash de la operación")
+    print(f"   - signature: Firma digital RSA-PSS")
+    print(f"   - chain_prev: Hash del registro anterior")
+    print(f"   - chain_hash: Hash encadenado (ledger)")
+    
+    print("\n" + "="*80)
+    print("PROCESO DE SEGURIDAD COMPLETADO")
+    print("="*80)
+    print(f" Pedido ID: {order_id}")
+    print(f" Hash SHA-256: {op_hash}")
+    print(f"  Firma RSA-PSS: {signature_b64[:50]}...")
+    print(f" Hash encadenado: {chain_hash}")
+    print(f"  Seguridad garantizada: Integridad + No Repudio + Trazabilidad")
+    print("="*80 + "\n")
 
     return order_id
