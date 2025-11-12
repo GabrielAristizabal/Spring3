@@ -6,6 +6,23 @@
   <div class="alert alert-success">
     Firmante activo: <strong>{{ signer.name }}</strong> ({{ signer.document }})
   </div>
+  {% if signer_keys %}
+  <div class="card mb-3 border-warning">
+    <div class="card-header bg-warning-subtle">
+      Llaves RSA del firmante (solo demostración, no usar así en producción)
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label">Clave pública</label>
+        <textarea class="form-control" rows="6" readonly>{{ signer_keys.public }}</textarea>
+      </div>
+      <div class="mb-0">
+        <label class="form-label">Clave privada</label>
+        <textarea class="form-control" rows="10" readonly>{{ signer_keys.private }}</textarea>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 {% else %}
   <div class="alert alert-danger">
     No existe el usuario firmante. Regístralo o selecciónalo (puedes escribirlo abajo en el campo "Firmante").

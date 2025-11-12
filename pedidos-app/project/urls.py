@@ -3,11 +3,7 @@ from django.contrib import admin
 from django.urls import path
 from django.views.generic import RedirectView
 
-from orders.views import (
-    create_order,
-    register_user,
-    set_signer,
-)
+from orders.views import create_order, register_user, set_signer, health
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -21,4 +17,5 @@ urlpatterns = [
 
     # Pedidos
     path("orders/create/", create_order, name="create_order"),
+    path("heath/", health, name="health"),
 ]

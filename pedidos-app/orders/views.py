@@ -2,6 +2,7 @@
 from __future__ import annotations
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from .services import (
     db,
@@ -17,6 +18,11 @@ from .services import (
 def home(request):
     """Página de inicio"""
     return render(request, "orders/home.html")
+
+
+def health(request):
+    """Endpoint simple para monitorización."""
+    return JsonResponse({"status": "ok", "timestamp": utcnow().isoformat() + "Z"})
 
 
 # -----------------------------
@@ -90,11 +96,38 @@ def create_order(request):
     """Crea un pedido firmado por el usuario en sesión"""
     signer_doc = request.session.get("signer_doc")
     signer = get_user_by_document(signer_doc) if signer_doc else None
+    signer_keys = None
+
+    if signer:
+        def _pem_to_text(value):
+            if not value:
+                return ""
+            if isinstance(value, str):
+                return value
+            try:
+                return bytes(value).decode("utf-8")
+            except Exception:
+                try:
+                    return value.decode("utf-8")
+                except Exception:
+                    return str(value)
+
+        signer_keys = {
+            "public": _pem_to_text(signer.get("pub_key")),
+            "private": _pem_to_text(signer.get("priv_key")),
+        }
 
     if request.method == "GET":
         if not signer:
             messages.error(request, "Debe registrar o seleccionar un usuario firmante.")
-        return render(request, "orders/order_form.html", {"signer": signer})
+        return render(
+            request,
+            "orders/order_form.html",
+            {
+                "signer": signer,
+                "signer_keys": signer_keys,
+            },
+        )
 
     cliente = (request.POST.get("cliente") or "").strip()
     documento = (request.POST.get("documento") or "").strip()
