@@ -1,167 +1,183 @@
 # orders/services.py
+from __future__ import annotations
+
+import json
+import base64
+import hashlib
 import datetime as dt
-from typing import Optional, Dict, Any, List
+from types import SimpleNamespace
 
 from django.conf import settings
 from pymongo import MongoClient, ASCENDING
-from pymongo.errors import ConfigurationError
-from bson import ObjectId
 
-from .crypto import generate_rsa_pair, make_operation_hash, sha256_hex
-
-
-# --- Conexión a MongoDB ------------------------------------------------------
-
-if not getattr(settings, "MONGODB_URI", ""):
-    raise ConfigurationError(
-        "MONGODB_URI está vacío. Define la URI en settings.py o en tu .env"
-    )
-
-_client = MongoClient(
-    settings.MONGODB_URI,
-    serverSelectionTimeoutMS=20000,
-    connectTimeoutMS=20000,
-)
-
-# Prueba conexión (lanza si no hay acceso)
-_client.admin.command("ping")
-
+# ====== Conexión Mongo ======
+_client = MongoClient(settings.MONGODB_URI)
 _db = _client[settings.MONGODB_DB]
-# Alias público para importar como: from orders.services import db
-db = _db
 
+users  = _db["users"]
+orders = _db["orders"]
+audits = _db["audit_log"]
 
-# --- Colecciones --------------------------------------------------------------
+# Exponer un objeto db.* para usar en vistas
+db = SimpleNamespace(users=users, orders=orders, audits=audits)
 
-users = db["users"]
-orders = db["orders"]
-audits = db["audit_log"]
+# ====== Utilidades básicas ======
+def utcnow() -> dt.datetime:
+    return dt.datetime.utcnow()
 
-
-# --- Índices ------------------------------------------------------------------
-
-def ensure_indexes() -> None:
-    """Crea índices si no existen (idempotente)."""
-    users.create_index([("username", ASCENDING)], unique=True)
-    users.create_index([("fingerprint", ASCENDING)], unique=True)
-
+def ensure_indexes():
+    users.create_index([("username", ASCENDING)], unique=False)
+    users.create_index([("document", ASCENDING)], unique=True)
+    users.create_index([("created_at", ASCENDING)])
     orders.create_index([("created_at", ASCENDING)])
     audits.create_index([("created_at", ASCENDING)])
 
-
-# --- Usuarios / Llaves --------------------------------------------------------
-
-def create_user_with_keys(
-    username: str,
-    email: str,
-    passphrase: Optional[str] = None
-) -> Dict[str, Any]:
-    """
-    Crea el usuario con par RSA y devuelve fingerprint + PEMs.
-    NOTA DEMO: Se guarda la privada cifrada en BD; en producción evita guardarla
-    o protégela con HSM/KMS.
-    """
-    priv_pem, pub_pem = generate_rsa_pair(passphrase or None)
-    fingerprint = sha256_hex(pub_pem)[:16]
-
-    users.insert_one(
-        {
-            "username": username,
-            "email": email,
-            "public_key_pem": pub_pem.decode(),
-            "fingerprint": fingerprint,
-            "private_key_pem_enc": priv_pem.decode(),  # DEMO: no lo hagas así en prod
-            "created_at": dt.datetime.utcnow(),
-        }
-    )
-    return {
-        "fingerprint": fingerprint,
-        "public_pem": pub_pem,
-        "private_pem": priv_pem,
-    }
-
-
-def get_user(username: str) -> Optional[Dict[str, Any]]:
-    return users.find_one({"username": username})
-
-
-# --- Auditoría encadenada -----------------------------------------------------
+def get_user_by_document(doc: str) -> dict | None:
+    if not doc:
+        return None
+    return users.find_one({"document": doc})
 
 def get_last_hash() -> str:
     last = audits.find_one(sort=[("created_at", -1)])
-    return last["hash"] if last else ""
+    return last["chain_hash"] if last and last.get("chain_hash") else ""
 
+# ====== Cripto (firma RSA y hash) ======
+def generar_llaves_rsa_pem(passphrase: str | None = None):
+    """
+    Envuelve la función que ya tengas en .crypto para generar llaves.
+    Retorna (priv_pem, pub_pem) en bytes.
+    """
+    from .crypto import generate_rsa_pair
+    return generate_rsa_pair(passphrase or None)
 
-def insert_audit_entry(
-    audit_payload: Dict[str, Any],
-    signature_b64: str,
-    signer: str,
-    pub_fingerprint: str,
-    envelope: Dict[str, Any],
-) -> None:
+def _sha256_hex(data: bytes | str) -> str:
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    return hashlib.sha256(data).hexdigest()
+
+def make_operation_hash(payload: dict) -> str:
     """
-    Inserta en el log de auditoría un registro con:
-    - payload de auditoría (incluye `hash` y `prev_hash`)
-    - firma base64
-    - quién firmó y fingerprint
-    - sobre/firma/verificación para el front
+    Hash estable del payload de operación (datos + timestamp + usuario).
     """
-    audits.insert_one(
-        {
-            **audit_payload,
-            "signature": signature_b64,
-            "signer": signer,
-            "pub_fingerprint": pub_fingerprint,
-            "envelope": envelope,
-            "created_at": dt.datetime.utcnow(),
-        }
+    # json ordenado para que el hash sea determinista
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return _sha256_hex(body)
+
+def _sign_rsa_b64(private_pem: str | bytes, data_to_sign: bytes | str) -> str:
+    """
+    Firma RSA-PSS/SHA256. Devuelve firma en base64.
+    Requiere 'cryptography' (normal en proyectos Django).
+    """
+    if isinstance(private_pem, str):
+        private_pem = private_pem.encode("utf-8")
+    if isinstance(data_to_sign, str):
+        data_to_sign = data_to_sign.encode("utf-8")
+
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+
+    key = serialization.load_pem_private_key(private_pem, password=None)
+    signature = key.sign(
+        data_to_sign,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH,
+        ),
+        hashes.SHA256(),
     )
+    return base64.b64encode(signature).decode("utf-8")
 
+# ====== CRUD / consultas ======
+def list_orders(limit: int = 50) -> list[dict]:
+    return list(orders.find().sort("created_at", -1).limit(limit))
 
-# --- Pedidos (CRUD) -----------------------------------------------------------
-
-def insert_order(order_doc: Dict[str, Any]) -> str:
-    order_doc["created_at"] = dt.datetime.utcnow()
-    res = orders.insert_one(order_doc)
-    return str(res.inserted_id)
-
-
-def find_order(_id: str) -> Optional[Dict[str, Any]]:
+def find_order(_id: str) -> dict | None:
+    from bson import ObjectId
     try:
         return orders.find_one({"_id": ObjectId(_id)})
     except Exception:
         return None
 
+def insert_order(order_doc: dict) -> str:
+    order_doc["created_at"] = utcnow()
+    res = orders.insert_one(order_doc)
+    return str(res.inserted_id)
 
-def list_orders(limit: int = 50) -> List[Dict[str, Any]]:
-    return list(orders.find().sort("created_at", -1).limit(limit))
+# ====== Creador con no-repudio ======
+def crear_pedido_firmado(
+    *,
+    cliente: str,
+    documento: str,
+    fecha: str,
+    items_json: str,
+    signer: dict,
+) -> str:
+    """
+    - Parsea items_json
+    - Inserta pedido
+    - Genera hash de operación (datos + timestamp + usuario)
+    - Firma el hash con la clave privada del usuario
+    - Encadena en audit_log con chain_hash (tipo ledger)
+    """
+    # 1) Items
+    try:
+        items = json.loads(items_json)
+    except Exception as e:
+        raise ValueError(f"items_json inválido: {e}")
 
+    # 2) Inserta pedido
+    order_doc = {
+        "client": cliente,
+        "document": documento,
+        "date": fecha,
+        "items": items,
+        "created_by": signer.get("document") if signer else None,
+        "created_at": utcnow(),
+    }
+    order_id = insert_order(order_doc)
 
-def update_order(_id: str, fields: Dict[str, Any]) -> bool:
-    return (
-        orders.update_one({"_id": ObjectId(_id)}, {"$set": fields}).modified_count == 1
-    )
+    # 3) Construye payload de la operación a auditar
+    ts = utcnow().isoformat() + "Z"
+    op_payload = {
+        "action": "create_order",
+        "order_id": order_id,
+        "client": cliente,
+        "document": documento,
+        "date": fecha,
+        "items": items,
+        "user": {
+            "document": signer.get("document"),
+            "name": signer.get("name"),
+        },
+        "timestamp": ts,
+    }
 
+    # 4) Hash de la operación
+    op_hash = make_operation_hash(op_payload)
 
-def delete_order(_id: str) -> bool:
-    return orders.delete_one({"_id": ObjectId(_id)}).deleted_count == 1
+    # 5) Firma con la clave privada del usuario (si está guardada)
+    priv_pem = signer.get("priv_key")
+    if not priv_pem:
+        # En algunos setups solo se guarda la pública; puedes cambiarla por una del sistema si aplicara.
+        raise RuntimeError("El usuario no tiene clave privada almacenada para firmar (demo).")
 
+    signature_b64 = _sign_rsa_b64(priv_pem, op_hash)
 
-# --- Exports públicos ---------------------------------------------------------
+    # 6) Hash encadenado (ledger)
+    prev_chain = get_last_hash()
+    chain_hash = _sha256_hex((prev_chain + op_hash).encode("utf-8"))
 
-__all__ = [
-    "db",
-    "users",
-    "orders",
-    "audits",
-    "ensure_indexes",
-    "create_user_with_keys",
-    "get_user",
-    "get_last_hash",
-    "insert_audit_entry",
-    "insert_order",
-    "find_order",
-    "list_orders",
-    "update_order",
-    "delete_order",
-]
+    # 7) Inserta en audit_log
+    audits.insert_one({
+        "order_id": order_id,
+        "action": "create_order",
+        "op_payload": op_payload,
+        "op_hash": op_hash,
+        "signature": signature_b64,
+        "signer_document": signer.get("document"),
+        "chain_prev": prev_chain,
+        "chain_hash": chain_hash,
+        "created_at": utcnow(),
+    })
+
+    return order_id
