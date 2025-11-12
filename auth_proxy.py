@@ -3,6 +3,7 @@ import json
 import jwt
 import requests
 import datetime
+from jwt import algorithms
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 
@@ -100,6 +101,21 @@ def proxy_request():
         log_event("FORWARD_ERROR", f"Error al redirigir petición: {str(e)}")
         return jsonify({"error": f"Error forwarding request: {str(e)}"}), 500
 
+@app.route("/validate", methods=["GET"])
+def validate_token():
+    """Endpoint de prueba para validar manualmente un token JWT."""
+    auth_header = request.headers.get("Authorization", None)
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Token missing"}), 401
+
+    token = auth_header.split()[1]
+    try:
+        payload = verify_token(token)
+        log_event("VALIDATE_OK", f"Token válido para usuario: {payload.get('sub')}")
+        return jsonify({"message": "Token válido", "user": payload.get("sub")}), 200
+    except Exception as e:
+        log_event("VALIDATE_FAIL", f"Error validando token: {str(e)}")
+        return jsonify({"error": f"Invalid token: {str(e)}"}), 401
 
 # === MAIN ===
 if __name__ == "__main__":
