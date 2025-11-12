@@ -13,6 +13,10 @@ def log_event(message):
     with open(LOG_FILE, "a") as f:
         f.write(f"[{datetime.datetime.utcnow()}] {message}\n")
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "Auth proxy OK"}), 200
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
