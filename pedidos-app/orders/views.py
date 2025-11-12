@@ -25,7 +25,7 @@ def home(request):
 def order_list(request):
     """Muestra todos los pedidos registrados"""
     pedidos = list(db.orders.find().sort("created_at", -1))
-    return render(request, "orders/list.html", {"pedidos": pedidos})
+    return render(request, "orders/order_list.html", {"orders": pedidos})
 
 
 # -----------------------------
@@ -94,7 +94,7 @@ def create_order(request):
     if request.method == "GET":
         if not signer:
             messages.error(request, "Debe registrar o seleccionar un usuario firmante.")
-        return render(request, "orders/create.html", {"signer": signer})
+        return render(request, "orders/order_form.html", {"signer": signer})
 
     cliente = (request.POST.get("cliente") or "").strip()
     documento = (request.POST.get("documento") or "").strip()
